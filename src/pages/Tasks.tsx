@@ -21,7 +21,7 @@ const priorityColors: Record<string, string> = {
   low: 'bg-success/10 text-success border-success/20',
 };
 
-const emptyForm = { title: '', description: '', priority: 'medium' as const, dueDate: format(new Date(), 'yyyy-MM-dd') };
+const emptyForm = { title: '', description: '', priority: 'medium' as 'low' | 'medium' | 'high', dueDate: format(new Date(), 'yyyy-MM-dd') };
 
 export default function Tasks() {
   const { user } = useAuth();
