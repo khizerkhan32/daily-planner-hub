@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, getCurrentUser, login as storeLogin, logout as storeLogout, register as storeRegister, seedData } from './store';
+import { User, getUser, login as storeLogin, logout as storeLogout, register as storeRegister } from './store';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => string | true;
-  register: (email: string, name: string, password: string) => string | true;
+  login: (email: string, password: string) => Promise<string | true>;
+  register: (email: string, name: string, password: string) => Promise<string | true>;
   logout: () => void;
   refresh: () => void;
 }
@@ -14,24 +14,22 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
-  const refresh = () => setUser(getCurrentUser());
+  const refresh = () => setUser(getUser());
 
   useEffect(() => {
-    seedData();
     refresh();
   }, []);
 
-  const login = (email: string, password: string): string | true => {
-    const result = storeLogin(email, password);
+  const login = async (email: string, password: string): Promise<string | true> => {
+    const result = await storeLogin(email, password);
     if (typeof result === 'string') return result;
     setUser(result);
     return true;
   };
 
-  const register = (email: string, name: string, password: string): string | true => {
-    const result = storeRegister(email, name, password);
+  const register = async (email: string, name: string, password: string): Promise<string | true> => {
+    const result = await storeRegister(email, name, password);
     if (typeof result === 'string') return result;
-    storeLogin(email, password);
     setUser(result);
     return true;
   };

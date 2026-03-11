@@ -1,10 +1,7 @@
-// localStorage-based store for prototype
-
 export interface User {
   id: string;
   email: string;
   name: string;
-  password: string; // prototype only - never do this in production
   role: 'user' | 'admin';
   createdAt: string;
 }
@@ -20,122 +17,210 @@ export interface Task {
   createdAt: string;
 }
 
-const USERS_KEY = 'planner_users';
-const TASKS_KEY = 'planner_tasks';
-const SESSION_KEY = 'planner_session';
+const API = "http://localhost:8000/api";
 
-function getItems<T>(key: string): T[] {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : [];
-}
+/* ---------------- AUTH ---------------- */
 
-function setItems<T>(key: string, items: T[]) {
-  localStorage.setItem(key, JSON.stringify(items));
-}
-
-// Seed admin user
-export function seedData() {
-  const users = getItems<User>(USERS_KEY);
-  if (!users.find(u => u.role === 'admin')) {
-    users.push({
-      id: crypto.randomUUID(),
-      email: 'admin@planner.com',
-      name: 'Admin',
-      password: 'admin123',
-      role: 'admin',
-      createdAt: new Date().toISOString(),
+export async function register(
+  email: string,
+  name: string,
+  password: string
+): Promise<User | string> {
+  try {
+    const res = await fetch(`${API}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, name }),
     });
-    setItems(USERS_KEY, users);
+
+    const data = await res.json();
+
+    if (!res.ok) return data.message || "Registration failed";
+
+    localStorage.setItem("planner_token", data.token);
+    // If backend does not return user, create user object from input
+    const userObj = data.user || { email, name, id: '', role: 'user', createdAt: '' };
+    localStorage.setItem("planner_user", JSON.stringify(userObj));
+
+    return userObj;
+  } catch {
+    return "Server error";
   }
 }
 
-// Auth
-export function register(email: string, name: string, password: string): User | string {
-  const users = getItems<User>(USERS_KEY);
-  if (users.find(u => u.email === email)) return 'Email already registered';
-  const user: User = {
-    id: crypto.randomUUID(),
-    email, name, password, role: 'user',
-    createdAt: new Date().toISOString(),
-  };
-  users.push(user);
-  setItems(USERS_KEY, users);
-  return user;
-}
+export async function login(
+  email: string,
+  password: string
+): Promise<User | string> {
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-export function login(email: string, password: string): User | string {
-  const users = getItems<User>(USERS_KEY);
-  const user = users.find(u => u.email === email && u.password === password);
-  if (!user) return 'Invalid email or password';
-  localStorage.setItem(SESSION_KEY, user.id);
-  return user;
+    const data = await res.json();
+
+    if (!res.ok) return data.message || "Login failed";
+
+    localStorage.setItem("planner_token", data.token);
+    localStorage.setItem("planner_user", JSON.stringify(data.user));
+
+    return data.user;
+  } catch {
+    return "Server error";
+  }
 }
 
 export function logout() {
-  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem("planner_token");
+  localStorage.removeItem("planner_user");
 }
 
-export function getCurrentUser(): User | null {
-  const id = localStorage.getItem(SESSION_KEY);
-  if (!id) return null;
-  return getItems<User>(USERS_KEY).find(u => u.id === id) || null;
+export function getUser() {
+  const user = localStorage.getItem("planner_user");
+  if (!user || user === "undefined") return null;
+  try {
+    return JSON.parse(user);
+  } catch {
+    return null;
+  }
 }
 
+
+/* ---------------- TASKS ---------------- */
+
+export async function getTasks(): Promise<Task[]> {
+  try {
+    const token = localStorage.getItem("planner_token");
+
+    const res = await fetch(`${API}/tasks`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) return [];
+
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function addTask(
+  task: Omit<Task, "id" | "createdAt">
+): Promise<Task | null> {
+  try {
+    const token = localStorage.getItem("planner_token");
+
+    const res = await fetch(`${API}/tasks`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(task),
+    });
+
+    if (!res.ok) return null;
+
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function updateTask(
+  taskId: string,
+  updates: Partial<Task>
+): Promise<boolean> {
+  try {
+    const token = localStorage.getItem("planner_token");
+
+    const res = await fetch(`${API}/tasks/${taskId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(updates),
+    });
+
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function toggleTaskCompletion(
+  taskId: string,
+  completed: boolean
+): Promise<boolean> {
+  try {
+    const token = localStorage.getItem("planner_token");
+
+    const res = await fetch(`${API}/tasks/${taskId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ completed }),
+    });
+
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteTask(taskId: string): Promise<boolean> {
+  try {
+    const token = localStorage.getItem("planner_token");
+
+    const res = await fetch(`${API}/tasks/${taskId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/* ---------------- ORDERING ---------------- */
+
+export function getOrderedTasks(tasks: Task[]): Task[] {
+  const priorityWeight = { high: 3, medium: 2, low: 1 };
+
+  return [...tasks].sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+
+    const pw = priorityWeight[b.priority] - priorityWeight[a.priority];
+    if (pw !== 0) return pw;
+
+    return (
+      new Date(a.dueDate).getTime() -
+      new Date(b.dueDate).getTime()
+    );
+  });
+  
+}
 export function updateProfile(userId: string, updates: Partial<Pick<User, 'name' | 'email'>>) {
-  const users = getItems<User>(USERS_KEY);
-  const idx = users.findIndex(u => u.id === userId);
-  if (idx === -1) return;
-  users[idx] = { ...users[idx], ...updates };
-  setItems(USERS_KEY, users);
-}
-
-// Tasks
-export function getTasks(userId: string): Task[] {
-  return getItems<Task>(TASKS_KEY).filter(t => t.userId === userId);
-}
-
-export function getAllTasks(): Task[] {
-  return getItems<Task>(TASKS_KEY);
-}
-
-export function addTask(task: Omit<Task, 'id' | 'createdAt'>): Task {
-  const tasks = getItems<Task>(TASKS_KEY);
-  const newTask: Task = { ...task, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
-  tasks.push(newTask);
-  setItems(TASKS_KEY, tasks);
-  return newTask;
-}
-
-export function updateTask(taskId: string, updates: Partial<Task>) {
-  const tasks = getItems<Task>(TASKS_KEY);
-  const idx = tasks.findIndex(t => t.id === taskId);
-  if (idx === -1) return;
-  tasks[idx] = { ...tasks[idx], ...updates };
-  setItems(TASKS_KEY, tasks);
-}
-
-export function deleteTask(taskId: string) {
-  const tasks = getItems<Task>(TASKS_KEY).filter(t => t.id !== taskId);
-  setItems(TASKS_KEY, tasks);
-}
-
-// Admin
-export function getAllUsers(): User[] {
-  return getItems<User>(USERS_KEY);
+  // Implement API call if needed
 }
 
 export function deleteUser(userId: string) {
-  setItems(USERS_KEY, getItems<User>(USERS_KEY).filter(u => u.id !== userId));
-  setItems(TASKS_KEY, getItems<Task>(TASKS_KEY).filter(t => t.userId !== userId));
+  // Implement API call if needed
+}
+export function getAllTasks(userId: string) {
+  // Implement API call if needed
+}
+export function getAllUsers(userId: string) {
+  // Implement API call if needed
 }
 
-// Smart ordering: high priority first, then by due date (soonest first)
-export function getOrderedTasks(tasks: Task[]): Task[] {
-  const priorityWeight = { high: 3, medium: 2, low: 1 };
-  return [...tasks].sort((a, b) => {
-    if (a.completed !== b.completed) return a.completed ? 1 : -1;
-    const pw = priorityWeight[b.priority] - priorityWeight[a.priority];
-    if (pw !== 0) return pw;
-    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-  });
-}

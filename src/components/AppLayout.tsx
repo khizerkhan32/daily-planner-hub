@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { CalendarDays, CheckSquare, LayoutDashboard, LogOut, Shield, User } from 'lucide-react';
@@ -7,6 +7,7 @@ import { CalendarDays, CheckSquare, LayoutDashboard, LogOut, Shield, User } from
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -17,6 +18,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   if (user?.role === 'admin') {
     navItems.push({ to: '/admin', label: 'Admin', icon: Shield });
   }
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div className="min-h-screen flex">
@@ -54,7 +60,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" onClick={logout}>
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground" onClick={handleLogout}>
             <LogOut className="h-4 w-4" /> Sign out
           </Button>
         </div>

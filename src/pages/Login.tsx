@@ -15,12 +15,12 @@ export default function Login() {
 
   if (user) return <Navigate to="/dashboard" replace />;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!email || !password) { setError('All fields are required'); return; }
-    const result = login(email, password);
-    if (result !== true) setError(result);
+    const result = await login(email, password);
+    if (result !== true) setError(result as string);
   };
 
   return (
@@ -52,7 +52,7 @@ export default function Login() {
             <p className="text-sm text-muted-foreground">
               Don't have an account? <Link to="/register" className="text-primary hover:underline">Sign up</Link>
             </p>
-            <p className="text-xs text-muted-foreground">Admin: admin@planner.com / admin123</p>
+            {/* <p className="text-xs text-muted-foreground">Admin: admin@planner.com / admin123</p> */}
           </CardFooter>
         </form>
       </Card>

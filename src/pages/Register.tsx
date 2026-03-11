@@ -17,14 +17,14 @@ export default function Register() {
 
   if (user) return <Navigate to="/dashboard" replace />;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!name || !email || !password) { setError('All fields are required'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     if (password !== confirmPassword) { setError('Passwords do not match'); return; }
-    const result = register(email, name, password);
-    if (result !== true) setError(result);
+    const result = await register(email, name, password);
+    if (result !== true) setError(result as string);
   };
 
   return (
