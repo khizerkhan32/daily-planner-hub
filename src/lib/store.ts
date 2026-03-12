@@ -173,7 +173,18 @@ export async function getTasks(): Promise<Task[]> {
 
     if (!res.ok) return [];
 
-    return await res.json();
+    const data = await res.json();
+
+    return data.map((t: any) => ({
+      id: t._id,
+      userId: t.user,
+      title: t.title,
+      description: t.description,
+      priority: t.priority,
+      dueDate: t.dueDate,
+      completed: t.status === "done",
+      createdAt: t.createdAt,
+    }));
   } catch {
     // Local fallback: tasks stored for demo mode
     return getLocalTasks();
@@ -197,7 +208,18 @@ export async function addTask(
 
     if (!res.ok) return null;
 
-    return await res.json();
+    const data = await res.json();
+
+    return {
+      id: data._id,
+      userId: data.user,
+      title: data.title,
+      description: data.description,
+      priority: data.priority,
+      dueDate: data.dueDate,
+      completed: data.status === "done",
+      createdAt: data.createdAt,
+    };
   } catch {
     // Local fallback
     const now = new Date().toISOString();
@@ -303,7 +325,20 @@ export function getOrderedTasks(tasks: Task[]): Task[] {
   
 }
 export function updateProfile(userId: string, updates: Partial<Pick<User, 'name' | 'email'>>) {
-  // Implement API call if needed
+  try {
+    const token = localStorage.getItem("planner_token");
+
+    fetch(`${API}/auth/profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(updates),
+    });
+  } catch {
+    // Handle error if needed
+  }
 }
 
 /* ---------------- ADMIN (frontend-only with API fallback) ---------------- */
@@ -311,7 +346,7 @@ export function updateProfile(userId: string, updates: Partial<Pick<User, 'name'
 export async function getAllUsers(): Promise<User[]> {
   try {
     const token = getToken();
-    const res = await fetch(`${API}/admin/users`, {
+    const res = await fetch(`${API}/auth/all`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error("bad_response");
@@ -330,7 +365,7 @@ export async function getAllUsers(): Promise<User[]> {
 export async function getAllTasks(): Promise<Task[]> {
   try {
     const token = getToken();
-    const res = await fetch(`${API}/admin/tasks`, {
+    const res = await fetch(`${API}/tasks/all`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error("bad_response");
@@ -344,7 +379,7 @@ export async function getAllTasks(): Promise<Task[]> {
 export async function deleteUser(userId: string): Promise<boolean> {
   try {
     const token = getToken();
-    const res = await fetch(`${API}/admin/users/${userId}`, {
+    const res = await fetch(`${API}/auth/user/${userId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -366,7 +401,7 @@ export async function deleteUser(userId: string): Promise<boolean> {
 export async function getUserById(userId: string): Promise<User | null> {
   try {
     const token = getToken();
-    const res = await fetch(`${API}/admin/users/${userId}`, {
+    const res = await fetch(`${API}/auth/user/${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error("bad_response");

@@ -7,6 +7,7 @@ import {
   deleteTask,
   getOrderedTasks,
   Task,
+  toggleTaskCompletion,
 } from "@/lib/store";
 
 import AppLayout from "@/components/AppLayout";
@@ -184,7 +185,7 @@ export default function Tasks() {
 
   const toggleComplete = async (task: Task) => {
     try {
-      await updateTask(task.id, { completed: !task.completed });
+      await toggleTaskCompletion(task.id,  true );
       setRefresh((r) => r + 1);
     } catch {
       toast.error("Update failed");
