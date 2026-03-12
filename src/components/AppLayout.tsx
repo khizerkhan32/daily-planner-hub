@@ -40,7 +40,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               key={item.to}
               to={item.to}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                location.pathname === item.to
+                location.pathname === item.to || (item.to === "/admin" && location.pathname.startsWith("/admin"))
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
               }`}

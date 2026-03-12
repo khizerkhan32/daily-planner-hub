@@ -11,6 +11,9 @@ import Dashboard from "./pages/Dashboard.tsx";
 import Tasks from "./pages/Tasks.tsx";
 import Profile from "./pages/Profile.tsx";
 import Admin from "./pages/Admin.tsx";
+import AdminUsers from "./pages/admin/AdminUsers.tsx";
+import AdminMonitoring from "./pages/admin/AdminMonitoring.tsx";
+import AdminUserDetails from "./pages/admin/AdminUserDetails.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import RequireAuth from "@/components/RequireAuth";
 
@@ -31,6 +34,9 @@ const App = () => (
             <Route path="/tasks" element={<RequireAuth><Tasks /></RequireAuth>} />
             <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
             <Route path="/admin" element={<RequireAuth><Admin /></RequireAuth>} />
+            <Route path="/admin/users" element={<RequireAuth><AdminUsers /></RequireAuth>} />
+            <Route path="/admin/users/:id" element={<RequireAuth><AdminUserDetails /></RequireAuth>} />
+            <Route path="/admin/monitoring" element={<RequireAuth><AdminMonitoring /></RequireAuth>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
